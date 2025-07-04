@@ -30,7 +30,7 @@ COPY --from=builder /app/.venv /app/.venv
 # Copy application code (excluding .env, .git, etc. via .dockerignore)
 COPY --link app.py ./
 COPY --link templates ./templates
-COPY --link static ./static
+#COPY --link static ./static
 #COPY --link SECURITY.md ./
 COPY --link requirement.txt ./
 #COPY --link .env ./
