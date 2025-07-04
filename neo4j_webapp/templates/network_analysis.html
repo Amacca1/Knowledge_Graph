@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Network Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded shadow-lg w-full max-w-3xl">
+        <h2 class="text-2xl font-bold mb-6 text-center">Network Analysis: Connections</h2>
+        <form method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6" id="analysisForm">
+            <div>
+                <label for="analysis_type" class="block text-sm font-medium mb-1">Analysis Type</label>
+                <select name="analysis_type" id="analysis_type" class="w-full border border-gray-300 rounded px-3 py-2" required>
+                    <option value="gov_company" {% if analysis_type == "gov_company" %}selected{% endif %}>Government ↔ Company</option>
+                    <option value="company_company" {% if analysis_type == "company_company" %}selected{% endif %}>Company ↔ Company</option>
+                    <option value="gov_gov" {% if analysis_type == "gov_gov" %}selected{% endif %}>Government ↔ Government</option>
+                    <option value="person_person" {% if analysis_type == "person_person" %}selected{% endif %}>Person ↔ Person</option>
+                </select>
+            </div>
+            <div id="govDropdown">
+                <label for="government_id" class="block text-sm font-medium mb-1">Government Body</label>
+                <select name="government_id" id="government_id" class="w-full border border-gray-300 rounded px-3 py-2">
+                    <option value="">Select...</option>
+                    {% for gov in governments %}
+                        <option value="{{ gov.id }}" {% if selected_gov == gov.id %}selected{% endif %}>{{ gov.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div id="companyDropdown">
+                <label for="company_id" class="block text-sm font-medium mb-1">Company</label>
+                <select name="company_id" id="company_id" class="w-full border border-gray-300 rounded px-3 py-2">
+                    <option value="">Select...</option>
+                    {% for comp in companies %}
+                        <option value="{{ comp.id }}" {% if selected_company == comp.id %}selected{% endif %}>{{ comp.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div id="company1Dropdown" style="display:none;">
+                <label for="company1_id" class="block text-sm font-medium mb-1">Company 1</label>
+                <select name="company1_id" id="company1_id" class="w-full border border-gray-300 rounded px-3 py-2">
+                    <option value="">Select...</option>
+                    {% for comp in companies %}
+                        <option value="{{ comp.id }}" {% if selected_company1 == comp.id %}selected{% endif %}>{{ comp.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div id="company2Dropdown" style="display:none;">
+                <label for="company2_id" class="block text-sm font-medium mb-1">Company 2</label>
+                <select name="company2_id" id="company2_id" class="w-full border border-gray-300 rounded px-3 py-2">
+                    <option value="">Select...</option>
+                    {% for comp in companies %}
+                        <option value="{{ comp.id }}" {% if selected_company2 == comp.id %}selected{% endif %}>{{ comp.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div id="gov1Dropdown" style="display:none;">
+                <label for="government1_id" class="block text-sm font-medium mb-1">Government Body 1</label>
+                <select name="government1_id" id="government1_id" class="w-full border border-gray-300 rounded px-3 py-2">
+                    <option value="">Select...</option>
+                    {% for gov in governments %}
+                        <option value="{{ gov.id }}" {% if selected_gov1 == gov.id %}selected{% endif %}>{{ gov.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div id="gov2Dropdown" style="display:none;">
+                <label for="government2_id" class="block text-sm font-medium mb-1">Government Body 2</label>
+                <select name="government2_id" id="government2_id" class="w-full border border-gray-300 rounded px-3 py-2">
+                    <option value="">Select...</option>
+                    {% for gov in governments %}
+                        <option value="{{ gov.id }}" {% if selected_gov2 == gov.id %}selected{% endif %}>{{ gov.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div id="person1Dropdown" style="display:none;">
+                <label for="person1_name" class="block text-sm font-medium mb-1">Person 1</label>
+                <input name="person1_name" id="person1_name" type="text"
+                       class="w-full border border-gray-300 rounded px-3 py-2"
+                       placeholder="Type a name or ID..." autocomplete="off"
+                       value="{{ selected_person1_name or '' }}">
+            </div>
+            <div id="person2Dropdown" style="display:none;">
+                <label for="person2_name" class="block text-sm font-medium mb-1">Person 2</label>
+                <input name="person2_name" id="person2_name" type="text"
+                       class="w-full border border-gray-300 rounded px-3 py-2"
+                       placeholder="Type a name or ID..." autocomplete="off"
+                       value="{{ selected_person2_name or '' }}">
+            </div>
+            <div class="md:col-span-2 flex items-center">
+                <input type="checkbox" id="include_companies" name="include_companies" class="mr-2" {% if include_companies %}checked{% endif %}>
+                <label for="include_companies" class="text-sm">Allow companies as go-between nodes</label>
+            </div>
+            <div class="md:col-span-2">
+                <button type="submit" class="w-full bg-green-800 text-white font-semibold py-2 rounded hover:bg-green-900 transition">Find Connections</button>
+            </div>
+        </form>
+        {% if results is not none %}
+            {% if results and results|length > 0 %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white border border-gray-200 rounded mb-6">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-2 border-b">#</th>
+                                <th class="px-4 py-2 border-b">Path Nodes</th>
+                                <th class="px-4 py-2 border-b">Path Edges</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in results %}
+                                <tr>
+                                    <td class="px-4 py-2 border-b">{{ loop.index }}</td>
+                                    <td class="px-4 py-2 border-b">
+                                        {% if row.Path_Nodes %}
+                                            {{ row.Path_Nodes | map(attribute='label') | join(' → ') }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-2 border-b">
+                                        {% if row.Path_Edges %}
+                                            {{ row.Path_Edges | map(attribute='label') | join(' → ') }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if results and results|length > 0 and results[0].Path_Nodes %}
+                    <div class="mb-3">
+                        <label for="pathSelect" class="block text-sm font-medium mb-1">Select Path:</label>
+                        <select id="pathSelect" class="w-full border border-gray-300 rounded px-3 py-2">
+                            {% for row in results %}
+                                <option value="{{ loop.index0 }}">Path {{ loop.index }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div id="flowchart" style="height: 400px; background: #fff; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 2rem;"></div>
+                    <script>
+                        const results = {{ results|tojson }};
+                        const pathSelect = document.getElementById("pathSelect");
+                        const container = document.getElementById("flowchart");
+
+                        function drawPath(idx) {
+                            const result = results[idx];
+                            const nodes = result.Path_Nodes.map(n => ({
+                                id: n.id,
+                                label: n.label,
+                                group: n.group,
+                                title: n.title,
+                                shape: "box"
+                            }));
+                            const edges = result.Path_Edges.map(e => ({
+                                from: e.from,
+                                to: e.to,
+                                label: e.label,
+                                title: e.title,
+                                arrows: "to"
+                            }));
+                            const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+                            const options = {
+                                layout: { hierarchical: { enabled: true, direction: "LR", sortMethod: "directed" } },
+                                edges: { font: { align: "middle" } },
+                                nodes: { font: { size: 18 } },
+                                physics: false,
+                                groups: {
+                                    Person: { color: "#60a5fa" },
+                                    Company: { color: "#34d399" },
+                                    GovernmentBody: { color: "#fbbf24" }
+                                }
+                            };
+                            new vis.Network(container, data, options);
+                        }
+
+                        drawPath(0);
+
+                        pathSelect.addEventListener("change", function() {
+                            drawPath(parseInt(this.value));
+                        });
+                    </script>
+                {% endif %}
+            {% else %}
+                <p class="text-center text-gray-500 mt-6">No connections found.</p>
+            {% endif %}
+        {% endif %}
+        <a href="/" class="block text-center mt-6 bg-green-200 hover:bg-green-300 text-green-900 font-semibold py-2 px-4 rounded transition">Back</a>
+    </div>
+    <script>
+        function updateDropdowns() {
+            const type = document.getElementById('analysis_type').value;
+            document.getElementById('govDropdown').style.display = (type === 'gov_company') ? '' : 'none';
+            document.getElementById('companyDropdown').style.display = (type === 'gov_company') ? '' : 'none';
+            document.getElementById('company1Dropdown').style.display = (type === 'company_company') ? '' : 'none';
+            document.getElementById('company2Dropdown').style.display = (type === 'company_company') ? '' : 'none';
+            document.getElementById('gov1Dropdown').style.display = (type === 'gov_gov') ? '' : 'none';
+            document.getElementById('gov2Dropdown').style.display = (type === 'gov_gov') ? '' : 'none';
+            document.getElementById('person1Dropdown').style.display = (type === 'person_person') ? '' : 'none';
+            document.getElementById('person2Dropdown').style.display = (type === 'person_person') ? '' : 'none';
+        }
+        document.getElementById('analysis_type').addEventListener('change', updateDropdowns);
+        window.addEventListener('DOMContentLoaded', updateDropdowns);
+    </script>
+    <!-- Place this script after your form, before </body> in network_analysis.html -->
+    <script>
+    // Pass people data from Flask to JS
+    const peopleData = [
+        {% for person in people %}
+            {name: {{ person.name|tojson }}, id: {{ person.id|tojson }}},
+        {% endfor %}
+    ];
+
+    // Setup custom autocomplete for a given input
+    function setupCustomAutocomplete(inputId, people) {
+        const input = document.getElementById(inputId);
+
+        // Create dropdown container
+        let dropdown = document.createElement('div');
+        dropdown.className = "absolute z-50 bg-white border border-gray-300 rounded shadow max-h-48 overflow-y-auto w-full";
+        dropdown.style.display = "none";
+        dropdown.style.position = "absolute";
+        dropdown.style.left = "0";
+        dropdown.style.top = "100%";
+        input.parentNode.style.position = "relative";
+        input.parentNode.appendChild(dropdown);
+
+        input.addEventListener('input', function() {
+            const val = input.value.trim().toLowerCase();
+            dropdown.innerHTML = "";
+            if (!val) {
+                dropdown.style.display = "none";
+                return;
+            }
+            // Filter people by name or id
+            const matches = people.filter(p =>
+                p.name.toLowerCase().includes(val) || p.id.toLowerCase().includes(val)
+            );
+            if (matches.length === 0) {
+                dropdown.style.display = "none";
+                return;
+            }
+            matches.forEach(p => {
+                const option = document.createElement('div');
+                option.className = "px-3 py-2 cursor-pointer hover:bg-green-100";
+                option.textContent = `${p.name} [${p.id}]`;
+                option.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    input.value = `${p.name} [${p.id}]`;
+                    dropdown.style.display = "none";
+                });
+                dropdown.appendChild(option);
+            });
+            dropdown.style.display = "block";
+        });
+
+        // Hide dropdown on blur (with a slight delay to allow click)
+        input.addEventListener('blur', function() {
+            setTimeout(() => { dropdown.style.display = "none"; }, 100);
+        });
+        // Show dropdown on focus if input has value
+        input.addEventListener('focus', function() {
+            if (input.value.trim()) input.dispatchEvent(new Event('input'));
+        });
+    }
+
+    // Initialize for both person fields
+    setupCustomAutocomplete('person1_name', peopleData);
+    setupCustomAutocomplete('person2_name', peopleData);
+    </script>
+</body>
+</html>
