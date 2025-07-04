@@ -1,4 +1,0 @@
-flask
-neo4j
-dotenv
-gunicorn
