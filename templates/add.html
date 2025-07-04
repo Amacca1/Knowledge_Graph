@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Node or Relationship</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded shadow-lg w-full max-w-lg">
+        <h2 class="text-2xl font-bold mb-6 text-center">Add Node or Relationship</h2>
+        {% if message %}
+            <div class="mb-4 p-3 rounded bg-blue-100 text-blue-800 text-center">{{ message }}</div>
+        {% endif %}
+        <div class="flex justify-center gap-4 mb-6">
+            <button type="button" onclick="showForm('node')" class="px-4 py-2 rounded bg-green-800 text-white hover:bg-green-900 transition">Add Node</button>
+            <button type="button" onclick="showForm('relationship')" class="px-4 py-2 rounded bg-green-800 text-white hover:bg-green-900 transition">Add Relationship</button>
+        </div>
+        <form method="POST" id="nodeForm" style="display:none;" class="space-y-4">
+            <input type="hidden" name="action" value="node">
+            <div>
+                <label class="block text-sm font-medium mb-1">Type</label>
+                <select name="node_type" required class="w-full border border-gray-300 rounded px-3 py-2">
+                    <option value="">Select Type</option>
+                    <option value="Person">Person</option>
+                    <option value="Company">Company</option>
+                    <option value="Government Body">Government Body</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Name</label>
+                <input type="text" name="name" required class="w-full border border-gray-300 rounded px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">ID</label>
+                <input type="text" name="id" required class="w-full border border-gray-300 rounded px-3 py-2" readonly>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Title (for Person)</label>
+                <input type="text" name="title" class="w-full border border-gray-300 rounded px-3 py-2">
+            </div>
+            <button type="submit" class="w-full bg-green-700 text-white font-semibold py-2 rounded hover:bg-green-800 transition">Add Node</button>
+        </form>
+        <form method="POST" id="relForm" style="display:none;" class="space-y-4">
+            <input type="hidden" name="action" value="relationship">
+            <div>
+                <label class="block mb-1 font-medium">From Node ID</label>
+                <input list="node-id-list" name="from_id" class="w-full border rounded px-2 py-1" required>
+            </div>
+            <div>
+                <label class="block mb-1 font-medium">To Node ID</label>
+                <input list="node-id-list" name="to_id" class="w-full border rounded px-2 py-1" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Relationship Type</label>
+                <input type="text" name="rel_type" required class="w-full border border-gray-300 rounded px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Notes</label>
+                <input type="text" name="notes" class="w-full border border-gray-300 rounded px-3 py-2">
+            </div>
+            <button type="submit" class="w-full bg-green-600 text-white font-semibold py-2 rounded hover:bg-green-700 transition">Add Relationship</button>
+        </form>
+        <!-- Add Relationship Modal -->
+        <div id="addRelModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-lg shadow-lg p-8 w-full max-w-md relative">
+                <button onclick="closeAddRelModal()" class="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl">&times;</button>
+                <h2 class="text-xl font-bold mb-4">Add Relationship</h2>
+                <form id="addRelForm" class="space-y-4">
+                    <div>
+                        <label class="block mb-1 font-medium">From Node ID</label>
+                        <input list="node-id-list" name="from_id" class="w-full border rounded px-2 py-1" required>
+                    </div>
+                    <div>
+                        <label class="block mb-1 font-medium">To Node ID</label>
+                        <input list="node-id-list" name="to_id" class="w-full border rounded px-2 py-1" required>
+                    </div>
+                    <datalist id="node-id-list"></datalist>
+                    <div>
+                        <label class="block mb-1 font-medium">Relationship Type</label>
+                        <input type="text" name="rel_type" class="w-full border rounded px-2 py-1" required>
+                    </div>
+                    <div>
+                        <label class="block mb-1 font-medium">Notes</label>
+                        <input type="text" name="notes" class="w-full border rounded px-2 py-1">
+                    </div>
+                    <button type="submit" class="w-full bg-green-600 text-white font-semibold py-2 rounded hover:bg-green-700 transition">Add Relationship</button>
+                </form>
+            </div>
+        </div>
+        <datalist id="node-id-list"></datalist>
+        <a href="/" class="block text-center mt-6 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded transition">Back</a>
+    </div>
+    <script>
+        function showForm(which) {
+            document.getElementById('nodeForm').style.display = (which === 'node') ? '' : 'none';
+            document.getElementById('relForm').style.display = (which === 'relationship') ? '' : 'none';
+        }
+    </script>
+    <script>
+let allNodeIds = [];
+
+function padNumber(num) {
+    return num.toString().padStart(3, '0');
+}
+
+function getNextId(type) {
+    let prefix = '';
+    if (type === 'Person') prefix = 'p';
+    else if (type === 'Company') prefix = 'c';
+    else if (type === 'Government Body') prefix = 'g';
+    // Filter IDs for this type
+    const ids = allNodeIds
+        .filter(item => item.id && item.id.startsWith(prefix))
+        .map(item => parseInt(item.id.slice(1)))
+        .filter(num => !isNaN(num));
+    const maxNum = ids.length > 0 ? Math.max(...ids) : 0;
+    return prefix + padNumber(maxNum + 1);
+}
+
+const nodeTypeInput = document.querySelector('select[name="node_type"]');
+const nodeIdInput = document.querySelector('input[name="id"]');
+const nodeNameInput = document.querySelector('input[name="name"]');
+
+// Fetch all node IDs once and store them
+fetch("/api/node-ids")
+  .then(res => res.json())
+  .then(data => {
+    allNodeIds = data;
+    // Also populate datalist for relationships
+    const datalist = document.getElementById("node-id-list");
+    datalist.innerHTML = "";
+    data.forEach(item => {
+      datalist.innerHTML += `<option value="${item.id}" label="${item.name} (${item.type})"></option>`;
+    });
+  });
+
+function updateNodeId() {
+    const type = nodeTypeInput.value;
+    if (!type) {
+        nodeIdInput.value = '';
+        return;
+    }
+    nodeIdInput.value = getNextId(type);
+}
+
+nodeTypeInput.addEventListener('change', updateNodeId);
+</script>
+</body>
+</html>

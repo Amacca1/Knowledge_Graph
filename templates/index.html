@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Knowledge Graph</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded shadow-lg max-w-md w-full">
+        <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">Knowledge Graph Query Interface</h1>
+
+        <form method="POST" action="/query" class="space-y-6">
+            <div>
+                <label for="query_id" class="block text-sm font-medium text-gray-700 mb-1">Select Query:</label>
+                <select name="query_id" id="query_id" class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    {% for key, value in queries.items() %}
+                        <option value="{{ key }}">{{ value.description }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="personInput" class="block text-sm font-medium text-gray-700 mb-1">Person Identifier:</label>
+                <input list="person-list" name="person_identifier" id="personInput" class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="off" placeholder="Type name or ID">
+                <datalist id="person-list"></datalist>
+            </div>
+            <div>
+                <label for="companyInput" class="block text-sm font-medium text-gray-700 mb-1">Company Identifier:</label>
+                <input list="company-list" name="company_identifier" id="companyInput" class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="off" placeholder="Type name or ID">
+                <datalist id="company-list"></datalist>
+            </div>
+
+            <div>
+                <button type="submit" class="w-full bg-green-800 text-white font-semibold py-2 rounded hover:bg-green-900 transition">
+                    Run Query
+                </button>
+            </div>
+        </form>
+        <div class="mt-6 text-center">
+            <a href="/network-analysis" class="inline-block bg-green-700 hover:bg-green-800 text-white font-semibold py-2 px-4 rounded transition">
+                Network Analysis
+            </a>
+        </div>
+        <div class="mt-6 text-center">
+            <a href="/add" class="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded transition">
+                Add new Node/Edge
+            </a>
+            <a href="/delete" class="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded transition ml-2">
+                Delete Node/Edge
+            </a>
+        </div>
+        <div class="mt-6 text-center">
+            <a href="/graph" class="inline-block bg-green-400 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded transition">
+                View Full Graph
+            </a>
+        </div>
+        <div class="mt-6 text-center">
+            <a href="/schema" class="inline-block bg-green-200 hover:bg-green-500 text-green-900 font-semibold py-2 px-4 rounded transition">
+                View Schema
+            </a>
+        </div>
+    </div>
+
+    <script>
+        fetch("/api/person-names")
+          .then(res => res.json())
+          .then(data => {
+            const datalist = document.getElementById("person-list");
+            datalist.innerHTML = "";
+            data.forEach(item => {
+              datalist.innerHTML += `<option value="${item.name}" label="${item.name} (${item.id})"></option>`;
+            });
+          });
+
+        fetch("/api/company-names")
+          .then(res => res.json())
+          .then(data => {
+            const datalist = document.getElementById("company-list");
+            datalist.innerHTML = "";
+            data.forEach(item => {
+              datalist.innerHTML += `<option value="${item.name}" label="${item.name} (${item.id})"></option>`;
+            });
+          });
+
+        document.querySelector('form[action="/query"]').addEventListener("submit", function(e) {
+            const person = document.getElementById("personInput").value.trim();
+            const company = document.getElementById("companyInput").value.trim();
+            if (!person && !company) {
+                e.preventDefault();
+                alert("Please enter at least a Person Identifier or a Company Identifier before running the query.");
+            }
+        });
+    </script>
+</body>
+</html>

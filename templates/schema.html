@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Entity Relationship Schema</title>
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+    <h1 class="text-3xl font-bold text-center mb-4">Entity Relationship Schema</h1>
+    <div class="max-w-3xl mx-auto bg-white rounded shadow p-8">
+        <div id="graph" class="w-full h-[700px] bg-white border rounded shadow"></div>
+        <div class="mt-8 flex justify-center">
+            <a href="/" class="bg-green-800 hover:bg-green-900 text-white font-semibold py-2 px-6 rounded transition">
+                Back
+            </a>
+        </div>
+    </div>
+    <script>
+        fetch("/schema-data")
+            .then(res => res.json())
+            .then(data => {
+                const container = document.getElementById("graph");
+                const options = {
+                    nodes: {
+                        shape: 'dot',
+                        size: 16,
+                        font: { size: 16, color: "#333" },
+                    },
+                    edges: {
+                        arrows: 'to',
+                        font: { align: "middle" },
+                        color: { color: "#ccc", highlight: "#444" },
+                        smooth: { type: "dynamic" }
+                    },
+                    groups: {
+                        Person: { color: "#86efac" },
+                        Company: { color: "#93c5fd" },
+                        GovernmentBody: { color: "#fcd34d" }
+                    },
+                    layout: { improvedLayout: true },
+                    interaction: {
+                        hover: true,
+                        tooltipDelay: 100,
+                        navigationButtons: true
+                    },
+                    physics: {
+                        barnesHut: {
+                            gravitationalConstant: -20000,
+                            springLength: 150
+                        },
+                        stabilization: { iterations: 250 }
+                    }
+                };
+                new vis.Network(container, { nodes: data.nodes, edges: data.edges }, options);
+            });
+    </script>
+</body>
+</html>

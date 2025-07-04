@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Delete Node or Relationship</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded shadow-lg w-full max-w-lg">
+        <h2 class="text-2xl font-bold mb-6 text-center">Delete Node or Relationship</h2>
+        {% if message %}
+            <div class="mb-4 p-3 rounded bg-red-100 text-red-800 text-center">{{ message }}</div>
+        {% endif %}
+        <div class="flex justify-center gap-4 mb-6">
+            <button type="button" onclick="showForm('node')" class="px-4 py-2 rounded bg-green-800 text-white hover:bg-green-900 transition">Delete Node</button>
+            <button type="button" onclick="showForm('relationship')" class="px-4 py-2 rounded bg-green-800 text-white hover:bg-green-900 transition">Delete Relationship</button>
+        </div>
+        <!-- Node delete form -->
+        <form method="POST" id="nodeForm" style="display:none;" class="space-y-4">
+            <input type="hidden" name="action" value="node">
+            <div>
+                <label class="block text-sm font-medium mb-1">Node ID</label>
+                <input type="text" name="id" list="node-id-list" required class="w-full border border-gray-300 rounded px-3 py-2">
+            </div>
+            <button type="submit" class="w-full bg-green-700 text-white font-semibold py-2 rounded hover:bg-green-800 transition">Delete Node</button>
+        </form>
+
+        <!-- Relationship delete form -->
+        <form method="POST" id="relForm" style="display:none;" class="space-y-4">
+            <input type="hidden" name="action" value="relationship">
+            <div>
+                <label class="block text-sm font-medium mb-1">From Node ID</label>
+                <input type="text" name="from_id" list="node-id-list" required class="w-full border border-gray-300 rounded px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">To Node ID</label>
+                <input type="text" name="to_id" list="node-id-list" required class="w-full border border-gray-300 rounded px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Relationship Type</label>
+                <input type="text" name="rel_type" required class="w-full border border-gray-300 rounded px-3 py-2">
+            </div>
+            <button type="submit" class="w-full bg-green-600 text-white font-semibold py-2 rounded hover:bg-green-700 transition">Delete Relationship</button>
+        </form>
+        <datalist id="node-id-list"></datalist>
+        <a href="/" class="block text-center mt-6 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded transition">Back</a>
+    </div>
+    <script>
+        fetch("/api/node-ids")
+          .then(res => res.json())
+          .then(data => {
+            const datalist = document.getElementById("node-id-list");
+            datalist.innerHTML = "";
+            data.forEach(item => {
+              datalist.innerHTML += `<option value="${item.id}" label="${item.name} (${item.type})"></option>`;
+            });
+          });
+
+        function showForm(which) {
+            document.getElementById('nodeForm').style.display = (which === 'node') ? '' : 'none';
+            document.getElementById('relForm').style.display = (which === 'relationship') ? '' : 'none';
+        }
+    </script>
+</body>
+</html>
